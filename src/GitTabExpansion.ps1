@@ -247,150 +247,170 @@ function GitTabExpansionInternal($lastBlock, $GitStatus = $null) {
         return gitBranches $matches['ref'] $true
     }
 
-    switch -regex ($lastBlock -replace "^$(Get-AliasPattern git) ","") {
+    $tempFunction = $lastBlock -replace "^$(Get-AliasPattern git) ",""
 
-        # Handles git <cmd> <op>
-        "^(?<cmd>$($subcommands.Keys -join '|'))\s+(?<op>\S*)$" {
-            gitCmdOperations $subcommands $matches['cmd'] $matches['op']
+    if ($tempFunction -match "^!f.*?; git (?<args>[^;&]+)") {
+        $tempFunction = $Matches['args']
+        $tempFunction = $tempFunction -replace '[$"].+',""
+
+        switch -regex ($tempFunction) {
+            # Handles git ad <path>
+            "^add.* (?<files>\S*)$" {
+                gitAddFiles $GitStatus $matches['files']
+            }
+
+            # Handles git dif(s) <path>
+            "^(?:diff|difftool)(?:.* (?<staged>(?:--cached|--staged))|.*) (?<files>\S*)$" {
+                gitDiffFiles $GitStatus $matches['files'] $matches['staged']
+            }
         }
+    }
+    else {
+        switch -regex ($lastBlock -replace "^$(Get-AliasPattern git) ","") {
 
-        # Handles git flow <cmd> <op>
-        "^flow (?<cmd>$($gitflowsubcommands.Keys -join '|'))\s+(?<op>\S*)$" {
-            gitCmdOperations $gitflowsubcommands $matches['cmd'] $matches['op']
-        }
+            # Handles git <cmd> <op>
+            "^(?<cmd>$($subcommands.Keys -join '|'))\s+(?<op>\S*)$" {
+                gitCmdOperations $subcommands $matches['cmd'] $matches['op']
+            }
 
-        # Handles git flow <command> <op> <name>
-        "^flow (?<command>\S*)\s+(?<op>\S*)\s+(?<name>\S*)$" {
-            gitFeatures $matches['name'] $matches['command']
-        }
+            # Handles git flow <cmd> <op>
+            "^flow (?<cmd>$($gitflowsubcommands.Keys -join '|'))\s+(?<op>\S*)$" {
+                gitCmdOperations $gitflowsubcommands $matches['cmd'] $matches['op']
+            }
 
-        # Handles git remote (rename|rm|set-head|set-branches|set-url|show|prune) <stash>
-        "^remote.* (?:rename|rm|set-head|set-branches|set-url|show|prune).* (?<remote>\S*)$" {
-            gitRemotes $matches['remote']
-        }
+            # Handles git flow <command> <op> <name>
+            "^flow (?<command>\S*)\s+(?<op>\S*)\s+(?<name>\S*)$" {
+                gitFeatures $matches['name'] $matches['command']
+            }
 
-        # Handles git stash (show|apply|drop|pop|branch) <stash>
-        "^stash (?:show|apply|drop|pop|branch).* (?<stash>\S*)$" {
-            gitStashes $matches['stash']
-        }
+            # Handles git remote (rename|rm|set-head|set-branches|set-url|show|prune) <stash>
+            "^remote.* (?:rename|rm|set-head|set-branches|set-url|show|prune).* (?<remote>\S*)$" {
+                gitRemotes $matches['remote']
+            }
 
-        # Handles git bisect (bad|good|reset|skip) <ref>
-        "^bisect (?:bad|good|reset|skip).* (?<ref>\S*)$" {
-            gitBranches $matches['ref'] $true
-        }
+            # Handles git stash (show|apply|drop|pop|branch) <stash>
+            "^stash (?:show|apply|drop|pop|branch).* (?<stash>\S*)$" {
+                gitStashes $matches['stash']
+            }
 
-        # Handles git tfs unshelve <shelveset>
-        "^tfs +unshelve.* (?<shelveset>\S*)$" {
-            gitTfsShelvesets $matches['shelveset']
-        }
-
-        # Handles git branch -d|-D|-m|-M <branch name>
-        # Handles git branch <branch name> <start-point>
-        "^branch.* (?<branch>\S*)$" {
-            gitBranches $matches['branch']
-        }
-
-        # Handles git <cmd> (commands & aliases)
-        "^(?<cmd>\S*)$" {
-            gitCommands $matches['cmd'] $TRUE
-        }
-
-        # Handles git help <cmd> (commands only)
-        "^help (?<cmd>\S*)$" {
-            gitCommands $matches['cmd'] $FALSE
-        }
-
-        # Handles git push remote <ref>:<branch>
-        # Handles git push remote +<ref>:<branch>
-        "^push${ignoreGitParams}\s+(?<remote>[^\s-]\S*).*\s+(?<force>\+?)(?<ref>[^\s\:]*\:)(?<branch>\S*)$" {
-            gitRemoteBranches $matches['remote'] $matches['ref'] $matches['branch'] -prefix $matches['force']
-        }
-
-        # Handles git push remote <ref>
-        # Handles git push remote +<ref>
-        # Handles git pull remote <ref>
-        "^(?:push|pull)${ignoreGitParams}\s+(?<remote>[^\s-]\S*).*\s+(?<force>\+?)(?<ref>[^\s\:]*)$" {
-            gitBranches $matches['ref'] -prefix $matches['force']
-            gitTags $matches['ref'] -prefix $matches['force']
-        }
-
-        # Handles git pull <remote>
-        # Handles git push <remote>
-        # Handles git fetch <remote>
-        "^(?:push|pull|fetch)${ignoreGitParams}\s+(?<remote>\S*)$" {
-            gitRemotes $matches['remote']
-        }
-
-        # Handles git reset HEAD <path>
-        # Handles git reset HEAD -- <path>
-        "^reset.* HEAD(?:\s+--)? (?<path>\S*)$" {
-            gitIndex $GitStatus $matches['path']
-        }
-
-        # Handles git <cmd> <ref>
-        "^commit.*-C\s+(?<ref>\S*)$" {
-            gitBranches $matches['ref'] $true
-        }
-
-        # Handles git add <path>
-        "^add.* (?<files>\S*)$" {
-            gitAddFiles $GitStatus $matches['files']
-        }
-
-        # Handles git checkout -- <path>
-        "^checkout.* -- (?<files>\S*)$" {
-            gitCheckoutFiles $GitStatus $matches['files']
-        }
-
-        # Handles git rm <path>
-        "^rm.* (?<index>\S*)$" {
-            gitDeleted $GitStatus $matches['index']
-        }
-
-        # Handles git diff/difftool <path>
-        "^(?:diff|difftool)(?:.* (?<staged>(?:--cached|--staged))|.*) (?<files>\S*)$" {
-            gitDiffFiles $GitStatus $matches['files'] $matches['staged']
-        }
-
-        # Handles git merge/mergetool <path>
-        "^(?:merge|mergetool).* (?<files>\S*)$" {
-            gitMergeFiles $GitStatus $matches['files']
-        }
-
-        # Handles git checkout <ref>
-        "^(?:checkout).* (?<ref>\S*)$" {
-            & {
+            # Handles git bisect (bad|good|reset|skip) <ref>
+            "^bisect (?:bad|good|reset|skip).* (?<ref>\S*)$" {
                 gitBranches $matches['ref'] $true
-                gitRemoteUniqueBranches $matches['ref']
+            }
+
+            # Handles git tfs unshelve <shelveset>
+            "^tfs +unshelve.* (?<shelveset>\S*)$" {
+                gitTfsShelvesets $matches['shelveset']
+            }
+
+            # Handles git branch -d|-D|-m|-M <branch name>
+            # Handles git branch <branch name> <start-point>
+            "^branch.* (?<branch>\S*)$" {
+                gitBranches $matches['branch']
+            }
+
+            # Handles git <cmd> (commands & aliases)
+            "^(?<cmd>\S*)$" {
+                gitCommands $matches['cmd'] $TRUE
+            }
+
+            # Handles git help <cmd> (commands only)
+            "^help (?<cmd>\S*)$" {
+                gitCommands $matches['cmd'] $FALSE
+            }
+
+            # Handles git push remote <ref>:<branch>
+            # Handles git push remote +<ref>:<branch>
+            "^push${ignoreGitParams}\s+(?<remote>[^\s-]\S*).*\s+(?<force>\+?)(?<ref>[^\s\:]*\:)(?<branch>\S*)$" {
+                gitRemoteBranches $matches['remote'] $matches['ref'] $matches['branch'] -prefix $matches['force']
+            }
+
+            # Handles git push remote <ref>
+            # Handles git push remote +<ref>
+            # Handles git pull remote <ref>
+            "^(?:push|pull)${ignoreGitParams}\s+(?<remote>[^\s-]\S*).*\s+(?<force>\+?)(?<ref>[^\s\:]*)$" {
+                gitBranches $matches['ref'] -prefix $matches['force']
+                gitTags $matches['ref'] -prefix $matches['force']
+            }
+
+            # Handles git pull <remote>
+            # Handles git push <remote>
+            # Handles git fetch <remote>
+            "^(?:push|pull|fetch)${ignoreGitParams}\s+(?<remote>\S*)$" {
+                gitRemotes $matches['remote']
+            }
+
+            # Handles git reset HEAD <path>
+            # Handles git reset HEAD -- <path>
+            "^reset.* HEAD(?:\s+--)? (?<path>\S*)$" {
+                gitIndex $GitStatus $matches['path']
+            }
+
+            # Handles git <cmd> <ref>
+            "^commit.*-C\s+(?<ref>\S*)$" {
+                gitBranches $matches['ref'] $true
+            }
+
+            # Handles git add <path>
+            "^add.* (?<files>\S*)$" {
+                gitAddFiles $GitStatus $matches['files']
+            }
+
+            # Handles git checkout -- <path>
+            "^checkout.* -- (?<files>\S*)$" {
+                gitCheckoutFiles $GitStatus $matches['files']
+            }
+
+            # Handles git rm <path>
+            "^rm.* (?<index>\S*)$" {
+                gitDeleted $GitStatus $matches['index']
+            }
+
+            # Handles git diff/difftool <path>
+            "^(?:diff|difftool)(?:.* (?<staged>(?:--cached|--staged))|.*) (?<files>\S*)$" {
+                gitDiffFiles $GitStatus $matches['files'] $matches['staged']
+            }
+
+            # Handles git merge/mergetool <path>
+            "^(?:merge|mergetool).* (?<files>\S*)$" {
+                gitMergeFiles $GitStatus $matches['files']
+            }
+
+            # Handles git checkout <ref>
+            "^(?:checkout).* (?<ref>\S*)$" {
+                & {
+                    gitBranches $matches['ref'] $true
+                    gitRemoteUniqueBranches $matches['ref']
+                    gitTags $matches['ref']
+                    # Return only unique branches (to eliminate duplicates where the branch exists locally and on the remote)
+                } | Select-Object -Unique
+            }
+
+            # Handles git worktree add <path> <ref>
+            "^worktree add.* (?<files>\S+) (?<ref>\S*)$" {
+                gitBranches $matches['ref']
+            }
+
+            # Handles git <cmd> <ref>
+            "^(?:cherry|cherry-pick|diff|difftool|log|merge|rebase|reflog\s+show|reset|revert|show).* (?<ref>\S*)$" {
+                gitBranches $matches['ref'] $true
                 gitTags $matches['ref']
-                # Return only unique branches (to eliminate duplicates where the branch exists locally and on the remote)
-            } | Select-Object -Unique
-        }
+            }
 
-        # Handles git worktree add <path> <ref>
-        "^worktree add.* (?<files>\S+) (?<ref>\S*)$" {
-            gitBranches $matches['ref']
-        }
+            # Handles git <cmd> --<param>=<value>
+            "^(?<cmd>$gitCommandsWithParamValues).* --(?<param>[^=]+)=(?<value>\S*)$" {
+                expandParamValues $matches['cmd'] $matches['param'] $matches['value']
+            }
 
-        # Handles git <cmd> <ref>
-        "^(?:cherry|cherry-pick|diff|difftool|log|merge|rebase|reflog\s+show|reset|revert|show).* (?<ref>\S*)$" {
-            gitBranches $matches['ref'] $true
-            gitTags $matches['ref']
-        }
+            # Handles git <cmd> --<param>
+            "^(?<cmd>$gitCommandsWithLongParams).* --(?<param>\S*)$" {
+                expandLongParams $matches['cmd'] $matches['param']
+            }
 
-        # Handles git <cmd> --<param>=<value>
-        "^(?<cmd>$gitCommandsWithParamValues).* --(?<param>[^=]+)=(?<value>\S*)$" {
-            expandParamValues $matches['cmd'] $matches['param'] $matches['value']
-        }
-
-        # Handles git <cmd> --<param>
-        "^(?<cmd>$gitCommandsWithLongParams).* --(?<param>\S*)$" {
-            expandLongParams $matches['cmd'] $matches['param']
-        }
-
-        # Handles git <cmd> -<shortparam>
-        "^(?<cmd>$gitCommandsWithShortParams).* -(?<shortparam>\S*)$" {
-            expandShortParams $matches['cmd'] $matches['shortparam']
+            # Handles git <cmd> -<shortparam>
+            "^(?<cmd>$gitCommandsWithShortParams).* -(?<shortparam>\S*)$" {
+                expandShortParams $matches['cmd'] $matches['shortparam']
+            }
         }
     }
 }
