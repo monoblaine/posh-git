@@ -1,6 +1,6 @@
 # posh-git Release History
 
-## 1.0.0-beta1 - January 10, 2018
+## 1.0.0-beta2 - February 14, 2018
 
 The 1.0.0 release is targeted specifically at Windows PowerShell 5.x and (cross-platform) PowerShell Core 6.x, both of
 which support writing prompt strings using [ANSI escape sequences](https://en.wikipedia.org/wiki/ANSI_escape_code).
@@ -20,10 +20,41 @@ Consequently this release introduces BREAKING changes with 0.7.x by:
   $GitPromptSettings.LocalWorkingStatusSymbol.Text = '#'
   $GitPromptSettings.LocalWorkingStatusSymbol.ForegroundColor = [ConsoleColor]::DarkRed
   ```
+- Renaming `$GitPromptSettings.EnableWindowTitle` to `$GitPromptSettings.WindowTitle`.
 - Changing `Write-VcsStatus`, `Write-GitStatus` and `Write-Prompt` to return a string rather than write to host when
   the host supports ANSI escape sequences.
 
 If you are still on Windows PowerShell 2.0, 3.0 or 4.0, please continue to use the 0.7.x version of posh-git.
+
+### Added
+
+- `RepoName` property has been addded to the `$global:GitStatus` object returned by Get-GitStatus.
+
+### Changed
+
+- `$GitPromptSettigs.EnableWindowTitle` has been renamed to `$GitPromptSettigs.WindowTitle` and now takes either a string or a ScriptBlock.
+  The default value is a ScriptBlock that takes two parameters: `$GitStatus`, `$IsAdmin`.
+  To prevent posh-git from changing the host's WindowTitle text, set `$GitPromptSettigs.WindowTitle` to `$null`.
+- The script that updates the WindowTitle text has been moved from the `Write-GitStatus` command to the built-in prompt function.
+- `$GitPromptSettigs.WindowTitle` is now used to set the WindowTitle text all the time, not just when inside a Git repo.
+- When a color setting is specified by a string (color name), HtmlColors are looked up before ConsoleColors on platforms that support `System.Drawing.ColorTranslator`.
+  ConsoleColors can be forced with `[ConsoleColor]::Cyan`.
+  ([PR #536](https://github.com/dahlbyk/posh-git/pull/536))
+
+### Fixed
+
+- Fixed EnablePromptStatus should not affect `Get-GitStatus` by adding `-Force` parameter.
+  ([#475](https://github.com/dahlbyk/posh-git/issues/475))
+  ([PR #535](https://github.com/dahlbyk/posh-git/pull/535))
+- Fixed PowerShell Core bug where we were using `Get-Content -Encoding Byte` when processing profile scripts during Chocolatey install/uninstall.
+  That encoding doesn't exist in PowerShell Core.
+  Switched to `Get-Content -AsByteStream` on PowerShell Core.
+  ([PR #532](https://github.com/dahlbyk/posh-git/pull/532))
+- Fixed ANSI rendering bug when both Foreground and Background colors are $null (default),
+  we were emitting an unnecessary terminating escape sequence `"$([char]27)[0m"`.
+  ([PR #532](https://github.com/dahlbyk/posh-git/pull/532))
+
+## 1.0.0-beta1 - January 10, 2018
 
 ### Removed
 
@@ -53,12 +84,12 @@ If you are still on Windows PowerShell 2.0, 3.0 or 4.0, please continue to use t
   ([#345](https://github.com/dahlbyk/posh-git/issues/345))
   ([PR #513](https://github.com/dahlbyk/posh-git/pull/513))
   We now export the commands that `Write-GitStatus` uses internally which are:
-  * Write-GitBranchName
-  * Write-GitBranchStatus
-  * Write-GitIndexStatus
-  * Write-GitStashCount
-  * Write-GitWorkingDirStatus
-  * Write-GitWorkingDirStatusSummary
+  - Write-GitBranchName
+  - Write-GitBranchStatus
+  - Write-GitIndexStatus
+  - Write-GitStashCount
+  - Write-GitWorkingDirStatus
+  - Write-GitWorkingDirStatusSummary
 
 ### Fixed
 
@@ -161,6 +192,7 @@ If you are still on Windows PowerShell 2.0, 3.0 or 4.0, please continue to use t
   ([PR #453](https://github.com/dahlbyk/posh-git/pull/453))
 
 ## 0.7.0 - February 14, 2017
+
 This release has focused on improving the "getting started" experience by adding an `Add-PoshGitToProfile` command that
 modifies the user's PowerShell profile script to import the posh-git module whenever PowerShell starts.
 When posh-git is imported, it will automatically install a posh-git prompt that displays Git status summary information.
@@ -217,18 +249,18 @@ Work was begun to eliminate some obvious crashes on PowerShell on .NET Core but 
 - Add about_posh-git help topic
   ([PR #298](https://github.com/dahlbyk/posh-git/pull/287))
 - Add new settings for default posh-git prompt:
-  * `DefaultPromptPrefix`
+  - `DefaultPromptPrefix`
     ([PR #393](https://github.com/dahlbyk/posh-git/pull/393))
-  * `DefaultPromptSuffix` (default includes nested prompt level,
+  - `DefaultPromptSuffix` (default includes nested prompt level,
     ([PR #363](https://github.com/dahlbyk/posh-git/pull/363)))
-  * `DefaultPromptDebugSuffix`
-  * `DefaultPromptEnableTiming`
+  - `DefaultPromptDebugSuffix`
+  - `DefaultPromptEnableTiming`
     ([PR #371](https://github.com/dahlbyk/posh-git/pull/371))
-  * `DefaultPromptAbbreviateHomeDirectory`
+  - `DefaultPromptAbbreviateHomeDirectory`
     ([#386](https://github.com/dahlbyk/posh-git/issues/386))
 - Add ahead/behind count to prompt
   ([PR #256](https://github.com/dahlbyk/posh-git/pull/256))
-  * Add `BranchBehindAndAheadDisplay` setting to control count display (Full (default), Compact, Minimal)
+  - Add `BranchBehindAndAheadDisplay` setting to control count display (Full (default), Compact, Minimal)
 - Fix empty `Git-SshPath` issue
   ([PR #268](https://github.com/dahlbyk/posh-git/pull/268))
 - Add new settings for prompt status summary text: `FileAddedText`, `FileModifiedText`, `FileRemovedText` and `FileConflictText`
@@ -259,95 +291,96 @@ Work was begun to eliminate some obvious crashes on PowerShell on .NET Core but 
   ([#293](https://github.com/dahlbyk/posh-git/issues/293))
   ([PR #413](https://github.com/dahlbyk/posh-git/pull/413))
 
-## Thank You:
+## Thank You
+
 Thank you to the following folks who contributed their time and scripting skills to make posh-git better:
 
 - Keith Hill (@rkeithhill)
-  * [Pester test infrastructure](https://github.com/dahlbyk/posh-git/commits/master/test?author=rkeithhill)
-  * Triage of open issues and PRs
-  * Many README and help improvements
-  * Many of the fixes enumerated above
+  - [Pester test infrastructure](https://github.com/dahlbyk/posh-git/commits/master/test?author=rkeithhill)
+  - Triage of open issues and PRs
+  - Many README and help improvements
+  - Many of the fixes enumerated above
 - Marcus Reid (@cmarcusreid)
-  * Use [GitStatusCache](https://github.com/cmarcusreid/git-status-cache) when it's installed
+  - Use [GitStatusCache](https://github.com/cmarcusreid/git-status-cache) when it's installed
     ([PR #208](https://github.com/dahlbyk/posh-git/pull/208))
-  * Report UpstreamGone from GitStatusCache response
+  - Report UpstreamGone from GitStatusCache response
     ([PR #372](https://github.com/dahlbyk/posh-git/pull/372))
 - Jason Shirk (@lzybkr)
-  * Speed up `Get-GitStatus`
+  - Speed up `Get-GitStatus`
     ([PR #319](https://github.com/dahlbyk/posh-git/pull/319))
-  * Use `PSCustomObject` case for sorted output of `$GitPromptSettings`
+  - Use `PSCustomObject` case for sorted output of `$GitPromptSettings`
     ([PR #382](https://github.com/dahlbyk/posh-git/pull/382))
 - Ralf Müller (@seamlessintegrations)
-  * Add support for tab-completion of Git parameters
+  - Add support for tab-completion of Git parameters
     ([PR #395](https://github.com/dahlbyk/posh-git/pull/395))
 - Aksel Kvitberg (@Flueworks)
-  * Add Worktree tab completion
+  - Add Worktree tab completion
     ([PR #366](https://github.com/dahlbyk/posh-git/pull/366))
 - Eric Amodio (@eamodio)
-  * Add aliasing support for TortoiseGit commands
+  - Add aliasing support for TortoiseGit commands
     ([PR #394](https://github.com/dahlbyk/posh-git/pull/394))
 - Kevin Shaw (@shawmanz32na)
-  * Add DefaultPromptAbbreviateHomeDirectory setting
+  - Add DefaultPromptAbbreviateHomeDirectory setting
     ([PR #387](https://github.com/dahlbyk/posh-git/pull/387))
 - KanjiBates (@KanjiBates)
-  * Fix link to git-scm.com in README.md
+  - Fix link to git-scm.com in README.md
     ([PR #396](https://github.com/dahlbyk/posh-git/pull/396))
 - Joel Rowley (@hjoelr)
-  * Fix syntax error on setenv calls
+  - Fix syntax error on setenv calls
     ([PR #297](https://github.com/dahlbyk/posh-git/pull/297))
 - Hui Sun (@JimAmuro)
-  * Fix [#298](https://github.com/dahlbyk/posh-git/issues/298) remove-item error after startup
+  - Fix [#298](https://github.com/dahlbyk/posh-git/issues/298) remove-item error after startup
     ([PR #299](https://github.com/dahlbyk/posh-git/pull/299))
 - Josh (@joshgo)
-  * Add tags to 'push' tab-completion
+  - Add tags to 'push' tab-completion
     ([PR #286](https://github.com/dahlbyk/posh-git/pull/286))
 - Rebecca Turner (@9999years)
-  * Add new settings for prompt FileAddedText, FileModifiedText, FileRemovedText and FileConflictText
+  - Add new settings for prompt FileAddedText, FileModifiedText, FileRemovedText and FileConflictText
     ([PR #277](https://github.com/dahlbyk/posh-git/pull/277))
 - Jack (@Jackbennett)
-  * Export command Write-VcsStatus to improve module auto-loading
+  - Export command Write-VcsStatus to improve module auto-loading
     ([PR #284](https://github.com/dahlbyk/posh-git/pull/284))
 - Brendan Forster (@shiftkey)
-  * Improvements to README.md
+  - Improvements to README.md
     ([PR #273](https://github.com/dahlbyk/posh-git/pull/273))
     ([PR #274](https://github.com/dahlbyk/posh-git/pull/274))
 - Paul Marston (@paulmarsy)
-  * Update README.md to reflect recent changes to the Git prompt
+  - Update README.md to reflect recent changes to the Git prompt
     ([PR #221](https://github.com/dahlbyk/posh-git/pull/221))
-  * Add error handling to Write-VcsStatus
+  - Add error handling to Write-VcsStatus
     ([PR #170](https://github.com/dahlbyk/posh-git/pull/170))
 - INOMATA Kentaro (@matarillo)
-  * Fix branch names using UTF8 characters do not display correctly
+  - Fix branch names using UTF8 characters do not display correctly
     ([PR #223](https://github.com/dahlbyk/posh-git/pull/223))
 - Luis Vita (@Ivita)
-  * Fix typo in git commit parameter --amend in tab exansion
+  - Fix typo in git commit parameter --amend in tab exansion
     ([PR #405](https://github.com/dahlbyk/posh-git/pull/405))
 - Skeept (@skeept)
-  * Fix debug prompt breaking posh-git prompt on PowerShell v4
+  - Fix debug prompt breaking posh-git prompt on PowerShell v4
     ([PR #406](https://github.com/dahlbyk/posh-git/pull/406))
 - @theaquamarine
-  * Fix [#249](https://github.com/dahlbyk/posh-git/issues/249), handling of multiple Pageant keys
+  - Fix [#249](https://github.com/dahlbyk/posh-git/issues/249), handling of multiple Pageant keys
     ([PR #255](https://github.com/dahlbyk/posh-git/pull/255))
 - Jan De Dobbeleer (@JanJoris)
-  * Remove errors thrown by `git symbolic-ref` and `git describe`
+  - Remove errors thrown by `git symbolic-ref` and `git describe`
     ([PR #307](https://github.com/dahlbyk/posh-git/pull/307))
 - Dan Smith (@dozius)
-  * Add tab completion for AVH git-flow commands
+  - Add tab completion for AVH git-flow commands
     ([PR #231](https://github.com/dahlbyk/posh-git/pull/231))
 - @drawfour
-  * Add ahead/behind count to prompt
+  - Add ahead/behind count to prompt
     ([PR #256](https://github.com/dahlbyk/posh-git/pull/256))
 - Dan Turner (@dan-turner)
-  * Add tab completion support for shorthand force-push syntax (`git push <remote> +<tab>`)
+  - Add tab completion support for shorthand force-push syntax (`git push <remote> +<tab>`)
     ([PR #174](https://github.com/dahlbyk/posh-git/pull/174))
 - Mark Hillebrand (@mah)
-  * Add tab completion of unique remote branch names for `git checkout <tab>`
+  - Add tab completion of unique remote branch names for `git checkout <tab>`
     ([PR #251](https://github.com/dahlbyk/posh-git/pull/251))
 - Jeff Yates (@somewhatabstract)
-  * Don't rerun Pageant if there are no keys to add
+  - Don't rerun Pageant if there are no keys to add
     ([PR #441](https://github.com/dahlbyk/posh-git/pull/441))
 - Tolga Balci (@tolgabalci)
-  * Create $PROFILE parent directory if missing
+  - Create $PROFILE parent directory if missing
     ([PR #449](https://github.com/dahlbyk/posh-git/pull/449))
-  * Add -verbose parameter to install.ps1
+  - Add -verbose parameter to install.ps1
     ([PR #451](https://github.com/dahlbyk/posh-git/pull/451))
