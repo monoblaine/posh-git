@@ -218,7 +218,7 @@ class PoshGitPromptSettings {
     [PoshGitCellColor]$StashColor   = [PoshGitCellColor]::new([ConsoleColor]::Red)
     [PoshGitCellColor]$ErrorColor   = [PoshGitCellColor]::new([ConsoleColor]::Red)
 
-    [PoshGitTextSpan]$BeforeText               = [PoshGitTextSpan]::new('[', [ConsoleColor]::Yellow)
+    [PoshGitTextSpan]$BeforeText               = [PoshGitTextSpan]::new(' [', [ConsoleColor]::Yellow)
     [PoshGitTextSpan]$DelimText                = [PoshGitTextSpan]::new(' |', [ConsoleColor]::Yellow)
     [PoshGitTextSpan]$AfterText                = [PoshGitTextSpan]::new(']', [ConsoleColor]::Yellow)
 
@@ -258,7 +258,6 @@ class PoshGitPromptSettings {
     [psobject]$WindowTitle = {param($GitStatus, [bool]$IsAdmin) "$(if ($IsAdmin) {'Administrator: '})$(if ($GitStatus) {"posh~git ~ $($GitStatus.RepoName) [$($GitStatus.Branch)] ~ "})PowerShell $($PSVersionTable.PSVersion) ($PID)"}
 
     [PoshGitTextSpan]$DefaultPromptPrefix       = ''
-    [PoshGitTextSpan]$DefaultPromptBetween      = ' '
     [PoshGitTextSpan]$DefaultPromptSuffix       = '$(">" * ($nestedPromptLevel + 1)) '
     [PoshGitTextSpan]$DefaultPromptDebug        = ' [DBG]:'
     [PoshGitTextSpan]$DefaultPromptPath         = '$(Get-PromptPath)'
