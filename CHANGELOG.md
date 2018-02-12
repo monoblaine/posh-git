@@ -29,6 +29,8 @@ If you are still on Windows PowerShell 2.0, 3.0 or 4.0, please continue to use t
 ### Added
 
 - `RepoName` property has been addded to the `$global:GitStatus` object returned by Get-GitStatus.
+- New command: Get-PromptPath which formats the path displayed in the prompt according to the $GitPromptSettings that
+  affect the path (DefaultPromptAbbreviateHomeDirectory).
 
 ### Changed
 
