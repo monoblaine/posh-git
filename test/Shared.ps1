@@ -43,7 +43,12 @@ function GetHomePath() {
     if ($GitPromptSettings.DefaultPromptAbbreviateHomeDirectory) {"~"} else {$HOME}
 }
 
-function GetHomeRelPath($Path) {
+function GetHomeRelPath([string]$Path) {
+    if (!$Path.StartsWith($Home)) {
+        # Path not under $Home
+        return $Path
+    }
+
     if ($GitPromptSettings.DefaultPromptAbbreviateHomeDirectory) {
         "~$($Path.Substring($Home.Length))"
     }
