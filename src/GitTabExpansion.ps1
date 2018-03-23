@@ -167,10 +167,10 @@ function script:gitCheckoutFiles($GitStatus, $filter) {
 
 function script:gitDiffFiles($GitStatus, $filter, $staged) {
     if ($staged) {
-        gitFiles $filter $GitStatus.Index.Modified
+        gitFiles $filter (@($GitStatus.Index.Unmerged) + @($GitStatus.Index.Added) + @($GitStatus.Index.Modified) + @($GitStatus.Index.Deleted))
     }
     else {
-        gitFiles $filter (@($GitStatus.Working.Unmerged) + @($GitStatus.Working.Modified) + @($GitStatus.Index.Modified))
+        gitFiles $filter (@($GitStatus.Working.Unmerged) + @($GitStatus.Working.Modified) + @($GitStatus.Working.Deleted))
     }
 }
 
